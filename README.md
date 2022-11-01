@@ -32,6 +32,16 @@ An instruction is encoded in four parts. Let's label them:
 
  * *A* is where the opcode, operand routing and result placement is encoded in.
 
+## Testing
+
+There's some 20000 testcases in `testing/corpus.gz`. They are samples of the state before and after the execution of random instructions taken from some sensible subset of the instruction space.
+
+To test the model (`model.py`) on the corpus, run the following from the root of the repository:
+
+    gzip -d < testing/corpus.gz | PYTHONPATH=.:$PYTHONPATH python3 testing/run.py
+
+On the last line of the output, it will print: the number of well predicted testcases/badly predicted testcases/number of all testcases. Testcases for which the model raises `NotImplementedError` are considered neither well- nor badly-predicted.
+
 ## Contributions & License
 
 Contributions are welcome. Contents of this repository (including any contributions!) are published under the terms of the MIT license, see the `LICENSE` file.
