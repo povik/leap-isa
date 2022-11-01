@@ -1,0 +1,55 @@
+name: Test Against Corpus
+on: [pull_request]
+
+jobs:
+  test-against-corpus-base:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      result: ${{ steps.runtest.outputs.result }}
+    steps:
+    - name: Install dependencies
+      run: |
+        pip install construct
+    - name: Check out repository code
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.base.ref }}
+    - name: Run the test itself
+      id: runtest
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        gzip -d < testing/corpus.gz | PYTHONPATH=.:$PYTHONPATH python3 testing/run.py 2>&1 | tee log
+        RESULT=`tail -n 1 log`
+        echo 'RESULT='$RESULT >> $GITHUB_ENV
+        echo 'result='$RESULT >> $GITHUB_OUTPUT
+  test-against-corpus:
+    runs-on: ubuntu-latest
+    needs: test-against-corpus-base
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      result: ${{ steps.runtest.outputs.result }}
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        pip install construct
+    - name: Run the test itself
+      id: runtest
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        gzip -d < testing/corpus.gz | PYTHONPATH=.:$PYTHONPATH python3 testing/run.py 2>&1 | tee log
+        RESULT=`tail -n 1 log`
+        echo 'RESULT='$RESULT >> $GITHUB_ENV
+        echo 'result='$RESULT >> $GITHUB_OUTPUT
+    - uses: actions-ecosystem/action-add-labels@v1
+      if: ${{ github.event_name == 'pull_request' }}
+      with:
+        labels: ${{ needs.test-against-corpus-base.outputs.result}} -> ${{ env.RESULT }}

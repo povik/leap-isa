@@ -42,6 +42,8 @@ To test the model (`model.py`) on the corpus, run the following from the root of
 
 On the last line of the output, it will print: the number of well predicted testcases/badly predicted testcases/number of all testcases. Testcases for which the model raises `NotImplementedError` are considered neither well- nor badly-predicted.
 
+Pull requests are automatically labeled by the change in the test score they cause.
+
 ## Contributions & License
 
 Contributions are welcome. Contents of this repository (including any contributions!) are published under the terms of the MIT license, see the `LICENSE` file.
