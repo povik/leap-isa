@@ -36,7 +36,7 @@ class GeneralInstr(BitFieldsValue):
     OP1BANK = 9,   8
     OPCODE1 = 7,   0
 
-class OpCodes(IntEnum):
+class Opcode(IntEnum):
     MUX = 0xe5
 
 def exec_1inst(ctx, inst):
@@ -60,7 +60,7 @@ def exec_1inst(ctx, inst):
     opcode = i0_fields.OPCODE2 << 8 | i0_fields.OPCODE1
     out = None
 
-    if opcode == OpCodes.MUX:
+    if opcode == Opcode.MUX:
         if op3 & 0x8000_0000:
             out = op2
         else:
