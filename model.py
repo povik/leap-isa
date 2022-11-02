@@ -37,7 +37,17 @@ class GeneralInstr(BitFieldsValue):
     OPCODE1 = 7,   0
 
 class Opcode(IntEnum):
+    PDM1 = 0x95 # one-in-4 decimation
+    PDM2 = 0x96
+    PDM3 = 0x97 # one-in-3 decimation
+    PDM4 = 0x98
+    PDM5 = 0x99 # one-in-5 decimation
+    PDM6 = 0x9a
+
     MUX = 0xe5
+
+def fmt_s32(val):
+    return val & 0xffff_ffff
 
 def exec_1inst(ctx, inst):
     i0, i1, i2, i3 = inst
@@ -65,6 +75,27 @@ def exec_1inst(ctx, inst):
             out = op2
         else:
             out = op1
+    elif opcode >= Opcode.PDM1 and opcode <= Opcode.PDM6:
+        FILTER_COEFFS = [
+            [64, 256, 640, 1280, 1984, 2560, 2816, 2560, 1984, 1280, 640, 256, 64],
+            [16, 80, 240, 560, 1040, 1616, 2160, 2480, 2480, 2160, 1616, 1040, 560, 240,
+             80, 16],
+            [256, 1024, 2560, 4096, 4864, 4096, 2560, 1024, 256],
+            [128, 640, 1920, 3840, 5760, 6528, 5760, 3840, 1920, 640, 128],
+            [32, 128, 320, 640, 1120, 1664, 2176, 2560, 2720, 2560, 2176, 1664, 1120, 640,
+             320, 128, 32],
+            [8, 40, 120, 280, 560, 968, 1480, 2040, 2560, 2920, 3048, 2920, 2560, 2040,
+             1480, 968, 560, 280, 120, 40, 8]
+        ]
+        kind = opcode - Opcode.PDM1
+        coeffs = FILTER_COEFFS[kind]
+        ratio = [ 4, 4, 3, 3, 5, 5 ][kind]
+        op1_shiftbits = [ 2, 2, 3, 3, 2, 2][kind]
+        shift = (op1 << op1_shiftbits >> 32) * ratio
+        out = fmt_s32(sum([
+            coeff * (1 if ((op2 << shift << i >> 31) & 1) else -1)
+            for i, coeff in enumerate(coeffs)
+        ]) << 16)
     else:
         raise NotImplementedError()
 
