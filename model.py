@@ -46,6 +46,105 @@ class Opcode(IntEnum):
 
     MUX = 0xe5
 
+    # TODO: join into opcodes with flags
+    FMULT        = 0x1c6
+    FMULTACC     = 0x1c7
+    FMULT_NEG    = 0x1d6
+    FMULTACC_NEG = 0x1d7
+
+class Float:
+    def __init__(self, exp, prec):
+        self.exp, self.prec = exp, prec
+
+    @classmethod
+    def decode(self, val):
+        sign = -1 if (val >> 31) else 1
+        exp = ((val >> 23) & 0xff) - 127
+        if exp > 127:
+            exp = 127
+        prec = (1 << 23) | (val & ~(-1 << 23))
+        if exp == -127:
+            prec &= ~1 << 23
+            exp = -126
+        return Float(
+            exp, prec * sign
+        )
+
+    @classmethod
+    def inf(self, sign):
+        return Float(
+            127, ~(-1 << 24) * sign
+        )
+
+    def __mul__(self, other):
+        #if self.is_inf or other.is_inf:
+        #    return Float.inf(self.sign * other.sign)
+        return Float(
+            self.exp + other.exp,
+            self.prec * other.prec
+        )
+
+    @property
+    def is_inf(self):
+        return (self.exp >= 127) \
+            or (self.exp == 127 and self.prec * self.sign == ~(-1 << 24))
+
+    @property
+    def sign(self):
+        return +1 if self.prec >= 0 else -1
+
+    def with_exp(self, texp):
+        if texp > self.exp:
+            return Float(texp, self.prec >> (texp - self.exp))
+        else:
+            return Float(texp, self.prec << (self.exp - texp))
+
+    def __sub__(self, other):
+        common_exp = min(self.exp, other.exp)
+        self_ = self.with_exp(common_exp)
+        other_ = other.with_exp(common_exp)
+        return Float(common_exp, self_.prec - other_.prec)
+
+    def __add__(self, other):
+        common_exp = min(self.exp, other.exp)
+        self_ = self.with_exp(common_exp)
+        other_ = other.with_exp(common_exp)
+        return Float(common_exp, self_.prec + other_.prec)
+
+    def normalize(self):
+        shiftdown = ((self.prec >> 24) ^ (self.prec >> 25)).bit_length()
+        self.prec = self.prec + (1 << shiftdown >> 1) >> shiftdown
+        self.exp += shiftdown
+
+        if self.exp > 127:
+            self.exp = 127
+            self.prec = self.sign * ~(-1 << 24)
+
+        while ((self.prec >> 23) ^ (self.prec >> 24)) == 0 \
+                and self.exp > -126:
+            self.exp -= 1
+            self.prec <<= 1
+
+        while self.exp < -126:
+            self.exp += 1
+            self.prec >>= 1
+
+        if self.exp >= 128:
+            self.exp = 127
+            self.prec = self.sign * ~(-1 << 24)
+
+        if self.prec * self.sign < (1 << 23):
+            assert self.exp == -126
+            self.prec = 0
+
+    def encode(self):
+        abs_prec = self.prec * self.sign
+        exp = self.exp
+        if abs_prec == 0:
+            exp = -127
+        signbit = self.sign == -1
+        return signbit << 31 | exp + 127 << 23 | (abs_prec & ~(-1 << 23))
+
 def fmt_s32(val):
     return val & 0xffff_ffff
 
@@ -96,6 +195,20 @@ def exec_1inst(ctx, inst):
             coeff * (1 if ((op2 << shift << i >> 31) & 1) else -1)
             for i, coeff in enumerate(coeffs)
         ]) << 16)
+    elif opcode in [Opcode.FMULT, Opcode.FMULT_NEG]:
+        res = Float.decode(op2) * Float.decode(op3) * Float(-23, 1)
+        if opcode == Opcode.FMULT_NEG:
+            res *= Float(0, -1)
+        res.normalize()
+        out = res.encode()
+    elif opcode in [Opcode.FMULTACC, Opcode.FMULTACC_NEG]:
+        res = Float.decode(op2) * Float.decode(op3)
+        res *= Float(-23, 1)
+        res += Float.decode(op1)
+        if opcode == Opcode.FMULTACC_NEG:
+            res *= Float(0, -1)
+        res.normalize()
+        out = res.encode()
     else:
         raise NotImplementedError()
 
