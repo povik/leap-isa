@@ -211,7 +211,7 @@ def exec_1inst(ctx, inst):
     elif opcode == Opcode.SUB_DIV2:
         out = fmt_s32((s32(op2) - s32(op1)) // 2)
     elif opcode == Opcode.ADD_UNS:
-        out = op1 + op2
+        out = (op1 + op2) & ~(-1 << 32)
     elif opcode == Opcode.ABS:
         inm = s32(op1)
         if inm < 0:
