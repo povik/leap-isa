@@ -37,12 +37,38 @@ class GeneralInstr(BitFieldsValue):
     OPCODE1 = 7,   0
 
 class Opcode(IntEnum):
+    ADD  = 0x80
+    ADD_DIV2 = 0x81
+    SUB  = 0x82
+    SUB_DIV2 = 0x83
+    ADD_UNS  = 0x84
+    ABS  = 0x85
+    MAX  = 0x86
+    MIN  = 0x87
+    MUX  = 0x88
+    AND  = 0x89
+    OR   = 0x8a
+    XOR  = 0x8b
+    CLR  = 0x8c
+    ZERO = 0x8d
+    ADD2 = 0x8e
+    ADD3 = 0x8f
+    ZERO2 = 0x90
+    ZERO3 = 0x91
+    ZERO4 = 0x92
+    CLAMP = 0x93
+    ROT  = 0x94
     PDM1 = 0x95 # one-in-4 decimation
     PDM2 = 0x96
     PDM3 = 0x97 # one-in-3 decimation
     PDM4 = 0x98
     PDM5 = 0x99 # one-in-5 decimation
     PDM6 = 0x9a
+    CMP  = 0x9b
+    CMP2 = 0x9c
+    EQ   = 0x9d
+    ADD4 = 0x9e
+    SUB2 = 0x9f
 
     FMUX = 0xe5
 
@@ -145,8 +171,14 @@ class Float:
         signbit = self.sign == -1
         return signbit << 31 | exp + 127 << 23 | (abs_prec & ~(-1 << 23))
 
+def s32(val):
+    return val - (0x1_0000_0000 if (val & 0x8000_0000) else 0)
+
 def fmt_s32(val):
     return val & 0xffff_ffff
+
+def s32_clamp(val):
+    return min(max(val, -0x8000_0000), 0x7fff_ffff)
 
 def exec_1inst(ctx, inst):
     i0, i1, i2, i3 = inst
@@ -169,11 +201,49 @@ def exec_1inst(ctx, inst):
     opcode = i0_fields.OPCODE2 << 8 | i0_fields.OPCODE1
     out = None
 
-    if opcode == Opcode.FMUX:
+    if opcode == Opcode.ADD:
+        out = fmt_s32(s32_clamp(s32(op2) + s32(op1)))
+    elif opcode == Opcode.ADD_DIV2:
+        inm = (s32(op2) + s32(op1)) // 2
+        out = fmt_s32(inm)
+    elif opcode == Opcode.SUB:
+        out = fmt_s32(s32_clamp(s32(op2) - s32(op1)))
+    elif opcode == Opcode.SUB_DIV2:
+        out = fmt_s32((s32(op2) - s32(op1)) // 2)
+    elif opcode == Opcode.ADD_UNS:
+        out = op1 + op2
+    elif opcode == Opcode.ABS:
+        inm = s32(op1)
+        if inm < 0:
+            inm = min(-inm, 0x7fff_ffff)
+        out = fmt_s32(inm)
+    elif opcode == Opcode.MAX:
+        out = fmt_s32(max(s32(op1), s32(op2)))
+    elif opcode == Opcode.MIN:
+        out = fmt_s32(min(s32(op1), s32(op2)))
+    elif opcode == Opcode.AND:
+        out = op1 & op2
+    elif opcode == Opcode.OR:
+        out = op1 | op2
+    elif opcode == Opcode.XOR:
+        out = op1 ^ op2
+    elif opcode == Opcode.CLR:
+        out = ~op1 & op2
+    elif opcode in [Opcode.ZERO, Opcode.ZERO2, Opcode.ZERO3, Opcode.ZERO4]:
+        out = 0
+    elif opcode in [Opcode.ADD2, Opcode.ADD3, Opcode.ADD4]:
+        out = (op1 + op2) & 0x7fff_ffff
+    elif opcode in [Opcode.MUX, Opcode.FMUX]:
         if op3 & 0x8000_0000:
             out = op2
         else:
             out = op1
+    elif opcode == Opcode.CLAMP:
+        points = [s32(op1), s32(op2), s32(op3)]
+        points.sort()
+        out = fmt_s32(points[1])
+    elif opcode == Opcode.ROT:
+        out = ~(-1 << 32) & (op1 << 1 | op1 >> 31)
     elif opcode >= Opcode.PDM1 and opcode <= Opcode.PDM6:
         FILTER_COEFFS = [
             [64, 256, 640, 1280, 1984, 2560, 2816, 2560, 1984, 1280, 640, 256, 64],
@@ -209,6 +279,14 @@ def exec_1inst(ctx, inst):
             res *= Float(0, -1)
         res.normalize()
         out = res.encode()
+    elif opcode == Opcode.CMP:
+        out = (s32(op1) > s32(op2)) << 31
+    elif opcode == Opcode.CMP2:
+        out = (s32(op1) >= s32(op2)) << 31
+    elif opcode == Opcode.EQ:
+        out = (op1 == op2) << 31
+    elif opcode == Opcode.SUB2:
+        out = (-op1 + op2) & 0x7fff_ffff
     else:
         raise NotImplementedError()
 
