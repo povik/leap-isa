@@ -44,7 +44,7 @@ class Opcode(IntEnum):
     PDM5 = 0x99 # one-in-5 decimation
     PDM6 = 0x9a
 
-    MUX = 0xe5
+    FMUX = 0xe5
 
     # TODO: join into opcodes with flags
     FMULT        = 0x1c6
@@ -169,7 +169,7 @@ def exec_1inst(ctx, inst):
     opcode = i0_fields.OPCODE2 << 8 | i0_fields.OPCODE1
     out = None
 
-    if opcode == Opcode.MUX:
+    if opcode == Opcode.FMUX:
         if op3 & 0x8000_0000:
             out = op2
         else:
