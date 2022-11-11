@@ -37,6 +37,8 @@ class GeneralInstr(BitFieldsValue):
     OPCODE1 = 7,   0
 
 class Opcode(IntEnum):
+    FRACMULT = 0x00
+
     ADD  = 0x80
     ADD_DIV2 = 0x81
     SUB  = 0x82
@@ -212,6 +214,8 @@ def exec_1inst(ctx, inst):
     opcode = i0_fields.OPCODE2 << 8 | i0_fields.OPCODE1
     out = None
 
+    if opcode == Opcode.FRACMULT:
+        out = fmt_s32(s32(op2) * s32(op3) >> 31)
     if opcode == Opcode.ADD:
         out = fmt_s32(s32_clamp(s32(op2) + s32(op1)))
     elif opcode == Opcode.ADD_DIV2:
