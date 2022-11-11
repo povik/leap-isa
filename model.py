@@ -29,7 +29,7 @@ class BitFieldsValue:
 class GeneralInstr(BitFieldsValue):
     OUTADDR = 31, 19
 
-    OPCODE2 = 17, 17
+    OPCODE2 = 18, 17
     OUTBANK = 15, 14
     OP3BANK = 13, 12
     OP2BANK = 11, 10
@@ -88,6 +88,10 @@ class Opcode(IntEnum):
     FMULT_NEG    = 0x1d6
     FMULTACC_NEG = 0x1d7
     FMULTSUB     = 0x1d8
+
+    MULT31 = 0x2e0 # <- appears equivalent to FRACMULT
+    # ...
+    MULT0  = 0x2ff
 
 class Float:
     def __init__(self, exp, prec):
@@ -318,6 +322,9 @@ def exec_1inst(ctx, inst):
     elif opcode == Opcode.FMULTSUB:
         out = (Float.decode(op1) - \
                 Float.decode(op2) * Float.decode(op3)).normalized().encode()
+    elif opcode >= Opcode.MULT31 and opcode <= Opcode.MULT0:
+        shift = Opcode.MULT0 - opcode
+        out = fmt_s32(s32(op2) * s32(op3) >> shift)
     else:
         raise NotImplementedError()
 
