@@ -72,6 +72,8 @@ class Opcode(IntEnum):
     ADD4 = 0x9e
     SUB2 = 0x9f
 
+    FCMP    = 0xe0
+    FCMP2   = 0xe1
     FMUX    = 0xe5
     F32_FMT = 0xed
 
@@ -151,6 +153,10 @@ class Float:
     def __add__(self, other):
         a, b = Float.with_common_exp(self, other)
         return Float(a.exp, a.prec + b.prec)
+
+    def __gt__(self, other):
+        a, b = Float.with_common_exp(self, other)
+        return a.prec > b.prec
 
     def normalize(self):
         shiftdown = ((self.prec >> 24) ^ (self.prec >> 25)).bit_length()
@@ -294,6 +300,12 @@ def exec_1inst(ctx, inst):
         out = (op1 == op2) << 31
     elif opcode == Opcode.SUB2:
         out = (-op1 + op2) & 0x7fff_ffff
+    elif opcode in [Opcode.FCMP, Opcode.FCMP2]:
+        if Float.decode(op2) > Float.decode(op1):
+            res = Float(23, 1)
+        else:
+            res = Float(23, -1)
+        out = res.normalized().encode()
     elif opcode == Opcode.FMUX:
         if op3 & 0x8000_0000:
             out = Float.decode(op2).normalized().encode()
