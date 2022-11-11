@@ -72,7 +72,8 @@ class Opcode(IntEnum):
     ADD4 = 0x9e
     SUB2 = 0x9f
 
-    FMUX = 0xe5
+    FMUX    = 0xe5
+    F32_FMT = 0xed
 
     # sample bad input: fff287df + 45108c24
     FADD      = 0x1c0
@@ -297,6 +298,15 @@ def exec_1inst(ctx, inst):
             out = Float.decode(op2).normalized().encode()
         else:
             out = Float.decode(op1).normalized().encode()
+    elif opcode == Opcode.F32_FMT:
+        exp = (s32(op2) >> 24) - 8
+        sign = -1 if op3 >> 31 else 1
+        prec = s32(op3) * sign
+        # crop extra bits, normalize() might erroneously round them up
+        shiftdown = max(prec.bit_length() - 24, 0)
+        prec >>= shiftdown
+        exp += shiftdown
+        out = Float(exp, prec * sign).normalized().encode()
     elif opcode == Opcode.FADD:
         out = (Float.decode(op1) + Float.decode(op2)).normalized().encode()
     elif opcode == Opcode.FADD_ABS:
