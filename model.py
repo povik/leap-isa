@@ -244,7 +244,7 @@ def exec_1inst(ctx, inst):
         out = 0
     elif opcode in [Opcode.ADD2, Opcode.ADD3, Opcode.ADD4]:
         out = (op1 + op2) & 0x7fff_ffff
-    elif opcode in [Opcode.MUX, Opcode.FMUX]:
+    elif opcode == Opcode.MUX:
         if op3 & 0x8000_0000:
             out = op2
         else:
@@ -284,6 +284,11 @@ def exec_1inst(ctx, inst):
         out = (op1 == op2) << 31
     elif opcode == Opcode.SUB2:
         out = (-op1 + op2) & 0x7fff_ffff
+    elif opcode == Opcode.FMUX:
+        if op3 & 0x8000_0000:
+            out = Float.decode(op2).normalized().encode()
+        else:
+            out = Float.decode(op1).normalized().encode()
     elif opcode == Opcode.FADD:
         out = (Float.decode(op1) + Float.decode(op2)).normalized().encode()
     elif opcode == Opcode.FADD_ABS:
