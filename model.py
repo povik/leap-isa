@@ -161,7 +161,7 @@ class Float:
             self.exp = 127
             self.prec = self.sign * ~(-1 << 24)
 
-        while ((self.prec >> 23) ^ (self.prec >> 24)) == 0 \
+        while self.prec * self.sign >> 23 == 0 \
                 and self.exp > -126:
             self.exp -= 1
             self.prec <<= 1
