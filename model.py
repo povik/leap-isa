@@ -139,17 +139,18 @@ class Float:
         else:
             return Float(texp, self.prec << (self.exp - texp))
 
+    @classmethod
+    def with_common_exp(self, a, b):
+        common = min(a.exp, b.exp)
+        return a.with_exp(common), b.with_exp(common)
+
     def __sub__(self, other):
-        common_exp = min(self.exp, other.exp)
-        self_ = self.with_exp(common_exp)
-        other_ = other.with_exp(common_exp)
-        return Float(common_exp, self_.prec - other_.prec)
+        a, b = Float.with_common_exp(self, other)
+        return Float(a.exp, a.prec - b.prec)
 
     def __add__(self, other):
-        common_exp = min(self.exp, other.exp)
-        self_ = self.with_exp(common_exp)
-        other_ = other.with_exp(common_exp)
-        return Float(common_exp, self_.prec + other_.prec)
+        a, b = Float.with_common_exp(self, other)
+        return Float(a.exp, a.prec + b.prec)
 
     def normalize(self):
         shiftdown = ((self.prec >> 24) ^ (self.prec >> 25)).bit_length()
