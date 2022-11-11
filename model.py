@@ -72,6 +72,14 @@ class Opcode(IntEnum):
 
     FMUX = 0xe5
 
+    # sample bad input: fff287df + 45108c24
+    FADD      = 0x1c0
+    FADD_ABS  = 0x1c1
+    FADD_DIV2 = 0x1c2
+    FSUB      = 0x1c3
+    FSUB_ABS  = 0x1c4
+    FSUB_DIV2 = 0x1c5
+
     # TODO: join into opcodes with flags
     FMULT        = 0x1c6
     FMULTACC     = 0x1c7
@@ -162,6 +170,9 @@ class Float:
         ret = Float(self.exp, self.prec)
         ret.normalize()
         return ret
+
+    def abs(self):
+        return Float(self.exp, self.prec * self.sign)
 
     def encode(self):
         abs_prec = self.prec * self.sign
@@ -273,6 +284,18 @@ def exec_1inst(ctx, inst):
         out = (op1 == op2) << 31
     elif opcode == Opcode.SUB2:
         out = (-op1 + op2) & 0x7fff_ffff
+    elif opcode == Opcode.FADD:
+        out = (Float.decode(op1) + Float.decode(op2)).normalized().encode()
+    elif opcode == Opcode.FADD_ABS:
+        out = (Float.decode(op1) + Float.decode(op2)).abs().normalized().encode()
+    elif opcode == Opcode.FADD_DIV2:
+        out = ((Float.decode(op1) + Float.decode(op2)) * Float(22, 1)).normalized().encode()
+    elif opcode == Opcode.FSUB:
+        out = (Float.decode(op2) - Float.decode(op1)).normalized().encode()
+    elif opcode == Opcode.FSUB_ABS:
+        out = (Float.decode(op2) - Float.decode(op1)).abs().normalized().encode()
+    elif opcode == Opcode.FSUB_DIV2:
+        out = ((Float.decode(op2) - Float.decode(op1)) * Float(22, 1)).normalized().encode()
     elif opcode in [Opcode.FMULT, Opcode.FMULT_NEG]:
         res = Float.decode(op2) * Float.decode(op3)
         if opcode == Opcode.FMULT_NEG:
