@@ -106,7 +106,7 @@ class Float:
         #if self.is_inf or other.is_inf:
         #    return Float.inf(self.sign * other.sign)
         return Float(
-            self.exp + other.exp,
+            self.exp + other.exp - 23,
             self.prec * other.prec
         )
 
@@ -274,17 +274,16 @@ def exec_1inst(ctx, inst):
     elif opcode == Opcode.SUB2:
         out = (-op1 + op2) & 0x7fff_ffff
     elif opcode in [Opcode.FMULT, Opcode.FMULT_NEG]:
-        res = Float.decode(op2) * Float.decode(op3) * Float(-23, 1)
+        res = Float.decode(op2) * Float.decode(op3)
         if opcode == Opcode.FMULT_NEG:
-            res *= Float(0, -1)
+            res *= Float(23, -1)
         res.normalize()
         out = res.encode()
     elif opcode in [Opcode.FMULTACC, Opcode.FMULTACC_NEG]:
         res = Float.decode(op2) * Float.decode(op3)
-        res *= Float(-23, 1)
         res += Float.decode(op1)
         if opcode == Opcode.FMULTACC_NEG:
-            res *= Float(0, -1)
+            res *= Float(23, -1)
         res.normalize()
         out = res.encode()
     else:
