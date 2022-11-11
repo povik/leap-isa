@@ -87,8 +87,6 @@ class Float:
     def decode(self, val):
         sign = -1 if (val >> 31) else 1
         exp = ((val >> 23) & 0xff) - 127
-        if exp > 127:
-            exp = 127
         prec = (1 << 23) | (val & ~(-1 << 23))
         if exp == -127:
             prec &= ~1 << 23
@@ -155,10 +153,6 @@ class Float:
         while self.exp < -126:
             self.exp += 1
             self.prec >>= 1
-
-        if self.exp >= 128:
-            self.exp = 127
-            self.prec = self.sign * ~(-1 << 24)
 
         if self.prec * self.sign < (1 << 23):
             assert self.exp == -126
