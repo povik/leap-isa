@@ -265,6 +265,14 @@ def exec_1inst(ctx, inst):
             coeff * (1 if ((op2 << shift << i >> 31) & 1) else -1)
             for i, coeff in enumerate(coeffs)
         ]) << 16)
+    elif opcode == Opcode.CMP:
+        out = (s32(op1) > s32(op2)) << 31
+    elif opcode == Opcode.CMP2:
+        out = (s32(op1) >= s32(op2)) << 31
+    elif opcode == Opcode.EQ:
+        out = (op1 == op2) << 31
+    elif opcode == Opcode.SUB2:
+        out = (-op1 + op2) & 0x7fff_ffff
     elif opcode in [Opcode.FMULT, Opcode.FMULT_NEG]:
         res = Float.decode(op2) * Float.decode(op3) * Float(-23, 1)
         if opcode == Opcode.FMULT_NEG:
@@ -279,14 +287,6 @@ def exec_1inst(ctx, inst):
             res *= Float(0, -1)
         res.normalize()
         out = res.encode()
-    elif opcode == Opcode.CMP:
-        out = (s32(op1) > s32(op2)) << 31
-    elif opcode == Opcode.CMP2:
-        out = (s32(op1) >= s32(op2)) << 31
-    elif opcode == Opcode.EQ:
-        out = (op1 == op2) << 31
-    elif opcode == Opcode.SUB2:
-        out = (-op1 + op2) & 0x7fff_ffff
     else:
         raise NotImplementedError()
 
