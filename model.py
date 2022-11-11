@@ -77,6 +77,7 @@ class Opcode(IntEnum):
     FMULTACC     = 0x1c7
     FMULT_NEG    = 0x1d6
     FMULTACC_NEG = 0x1d7
+    FMULTSUB     = 0x1d8
 
 class Float:
     def __init__(self, exp, prec):
@@ -288,6 +289,9 @@ def exec_1inst(ctx, inst):
         if opcode == Opcode.FMULTACC_NEG:
             res *= Float(23, -1)
         out = res.normalized().encode()
+    elif opcode == Opcode.FMULTSUB:
+        out = (Float.decode(op1) - \
+                Float.decode(op2) * Float.decode(op3)).normalized().encode()
     else:
         raise NotImplementedError()
 
