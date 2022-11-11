@@ -163,6 +163,11 @@ class Float:
             assert self.exp == -126
             self.prec = 0
 
+    def normalized(self):
+        ret = Float(self.exp, self.prec)
+        ret.normalize()
+        return ret
+
     def encode(self):
         abs_prec = self.prec * self.sign
         exp = self.exp
@@ -277,15 +282,13 @@ def exec_1inst(ctx, inst):
         res = Float.decode(op2) * Float.decode(op3)
         if opcode == Opcode.FMULT_NEG:
             res *= Float(23, -1)
-        res.normalize()
-        out = res.encode()
+        out = res.normalized().encode()
     elif opcode in [Opcode.FMULTACC, Opcode.FMULTACC_NEG]:
         res = Float.decode(op2) * Float.decode(op3)
         res += Float.decode(op1)
         if opcode == Opcode.FMULTACC_NEG:
             res *= Float(23, -1)
-        res.normalize()
-        out = res.encode()
+        out = res.normalized().encode()
     else:
         raise NotImplementedError()
 
