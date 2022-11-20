@@ -72,6 +72,57 @@ class Opcode(IntEnum):
     ADD4 = 0x9e
     SUB2 = 0x9f
 
+
+    # ----
+    # Opcodes 0xa0...0xbf have side effects and as such are not
+    # modeled in Python, instead a textual description is given:
+
+    '''
+    Read value from I/O port (w/ signaling)
+
+    The port is selected by index in top 8 bits of operand #3. Once the read
+    is done, the port is signaled empty and ready to accept another value.
+
+    In the latter (TAKEC) version of the opcode the operation is conditioned
+    on top bit of operand #2 being set.
+    '''
+    TAKE   = 0xa0
+    TAKEC  = 0xa1
+
+    '''
+    Read value from I/O port (w/o signaling)
+
+    The port is selected by index in top 8 bits of operand #3. The read does
+    not affect the port's adjacent full/empty signaling.
+    '''
+    PEEK   = 0xa2
+
+    '''
+    Write value to I/O port (w/ signaling)
+
+    The operand #1 will be written to I/O port selected by index in top 8 bits
+    of operand #3. Once the write is done, the port is signaled full and
+    ready to pass on its value to a peripheral or another LEAP routine.
+
+    In the latter (PUTC) version of the opcode the operation is conditioned
+    on top bit of operand #2 being set.
+    '''
+    PUT    = 0xa4
+    PUTC   = 0xa5
+
+    '''
+    Write value to I/O port (w/o signaling)
+
+    The operand #1 will be written to I/O port selected by index in top 8 bits
+    of operand #3. The write does not affect the port's adjacent full/empty
+    signaling.
+    '''
+    UPDATE = 0xa6
+
+    # These were the side effect opcodes. Pardon the interruption and enjoy
+    # more of the pure opcodes that follow below.
+    # ---
+
     FCMP    = 0xe0
     FCMP2   = 0xe1
     FMUX    = 0xe5
